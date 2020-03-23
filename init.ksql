@@ -1,0 +1,150 @@
+create type opportunity as struct<id integer, name varchar, price double, status varchar, product_id int, customer_id int>;
+
+create type customer as struct<id integer , name varchar>;
+
+create type product as struct<id integer , name varchar>;
+
+
+create stream customers_cdc (after customer)
+  with (kafka_topic = 'mysql.ksql_poc.customer', value_format='JSON', partitions=1, replicas=1) ;
+
+create stream customers WITH (KAFKA_TOPIC='customers', value_format='JSON') as
+  select
+    customers_cdc.after->id as id,
+    customers_cdc.after->name as name
+  from customers_cdc
+  partition by customers_cdc.after->id
+  ;
+
+create table tbl_customer (rowkey int key, id int, name string)
+with(kafka_topic='customers', value_format='JSON', key='id');
+
+create stream product_cdc(after product )
+  with(kafka_topic = 'mysql.ksql_poc.product', value_format='JSON', partitions=1, replicas=1);
+
+create stream products with (kafka_topic='products', value_format='JSON') as
+  select
+    product_cdc.after->id as id,
+    product_cdc.after->name as name
+  from product_cdc
+  partition by product_cdc.after->id
+  ;
+
+create table tbl_product(rowkey int key, id int, name string)
+  with (kafka_topic='products', value_format='JSON', key='id');
+
+
+create stream opportunities_cdc ( after opportunity)
+  with (kafka_topic='mysql.ksql_poc.opportunity', value_format='JSON', partitions=1, replicas=1);
+
+
+create stream opportunities_cust as
+  select
+    opportunities_cdc.after->id as id,
+    opportunities_cdc.after->customer_id as customer_id,
+    opportunities_cdc.after->product_id as product_id,
+    opportunities_cdc.after->name as opportunity_name,
+    opportunities_cdc.after->price as price,
+    opportunities_cdc.after->status as status,
+    tbl_customer.name as customer_name
+  from opportunities_cdc
+    join tbl_customer on opportunities_cdc.after->customer_id = tbl_customer.id
+;
+
+create stream opportunity_fact
+  with(value_format='AVRO') as
+  select
+    opportunities_cust.id as id,
+    opportunities_cust.customer_id as customer_id,
+    opportunities_cust.product_id as product_id,
+    opportunities_cust.opportunity_name as opportunity_name,
+    opportunities_cust.price as price,
+    opportunities_cust.status as status,
+    opportunities_cust.customer_name as customer_name,
+    tbl_product.name as product_name
+  from opportunities_cust
+    join tbl_product on opportunities_cust.product_id = tbl_product.id
+;
+
+/********************************************/
+
+create stream opportunities_by_customer
+  WITH (KAFKA_TOPIC='opportunities', value_format='JSON') as
+  select
+    opportunities_cdc.after->id as id,
+    opportunities_cdc.after->customer_id as customer_id,
+    opportunities_cdc.after->product_id as product_id,
+    opportunities_cdc.after->name as opportunity_name,
+    opportunities_cdc.after->price as price,
+    opportunities_cdc.after->status as status
+  from opportunities_cdc
+  partition by opportunities_cdc.after->customer_id
+  ;
+
+create table tbl_opportunities_by_customer(
+  rowkey int key,
+  id int,
+  customer_id int,
+  product_id int,
+  opportunity_name string,
+  price double,
+  status string
+)
+  with(kafka_topic='opportunities', value_format='JSON', key='customer_id');
+
+create table tbl_opportunities_customer as
+  select
+    tbl_opportunities_by_customer.id as id,
+    tbl_opportunities_by_customer.customer_id as customer_id,
+    tbl_opportunities_by_customer.product_id as product_id,
+    tbl_opportunities_by_customer.opportunity_name as opportunity_name,
+    tbl_opportunities_by_customer.price as price,
+    tbl_opportunities_by_customer.status as status,
+    tbl_customer.name as customer_name
+  from tbl_opportunities_by_customer
+    join tbl_customer on tbl_opportunities_by_customer.customer_id = tbl_customer.id
+    ;
+
+
+create stream opportunities_customer(
+  id int,
+  customer_id int,
+  product_id int,
+  opportunity_name string,
+  price double,
+  status string,
+  customer_name string
+) with(kafka_topic='TBL_OPPORTUNITIES_CUSTOMER', value_format='JSON');
+
+create stream opportunities_customer_by_product
+  with(kafka_topic='opportunities_customer_by_product', value_format='JSON') as
+  select * from opportunities_customer partition by product_id
+;
+
+create table tbl_opportunities_customer_by_product(
+  rowkey int key,
+  id int,
+  customer_id int,
+  product_id int,
+  opportunity_name string,
+  price double,
+  status string,
+  customer_name string
+)
+  with(kafka_topic='opportunities_customer_by_product', value_format='JSON', key='product_id')
+  ;
+
+create table opportunity_fact2
+  with(value_format='AVRO') as
+  select
+    tbl_opportunities_customer_by_product.id as id,
+    tbl_opportunities_customer_by_product.customer_id as customer_id,
+    tbl_opportunities_customer_by_product.product_id as product_id,
+    tbl_opportunities_customer_by_product.opportunity_name as opportunity_name,
+    tbl_opportunities_customer_by_product.price  as price ,
+    tbl_opportunities_customer_by_product.status  as status ,
+    tbl_opportunities_customer_by_product.customer_name as customer_name,
+    tbl_product.name as product_name
+  from tbl_opportunities_customer_by_product
+    join tbl_product on tbl_opportunities_customer_by_product.product_id = tbl_product.id
+  ;
