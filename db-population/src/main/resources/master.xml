@@ -19,5 +19,6 @@
     <include file="changelog/20200318162400_added_entity_FactOpportunity.xml" relativeToChangelogFile="true"/>
     <!-- jhipster-needle-liquibase-add-changelog - JHipster will add liquibase changelogs here -->
     <include file="changelog/20200318162300_added_entity_constraints_Opportunity.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/20200327162100_added_entity_headers_item.xml" relativeToChangelogFile="true"/>
     <!-- jhipster-needle-liquibase-add-constraints-changelog - JHipster will add liquibase constraints changelogs here -->
 </databaseChangeLog>

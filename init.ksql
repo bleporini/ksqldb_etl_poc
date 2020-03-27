@@ -148,3 +148,151 @@ create table opportunity_fact2
   from tbl_opportunities_customer_by_product
     join tbl_product on tbl_opportunities_customer_by_product.product_id = tbl_product.id
   ;
+
+/*****************************************/
+
+create type header as struct<guid varchar ,object_id varchar, posting_date varchar>;
+create type item as struct<guid varchar ,item_guid varchar, item_type varchar, product_id varchar>;
+create type split_base as struct<
+  guid varchar,
+  item_guid varchar,
+  sales_org varchar,
+  partner_number varchar,
+  currency varchar,
+  alloc_date varchar,
+  revenue double
+>;
+
+create stream headers_cdc (after header)
+  with(kafka_topic='mysql.ksql_poc.header', value_format='JSON', partitions=1, replicas=1) ;
+
+create stream headers
+  with (kafka_topic='headers', value_format='AVRO')
+as
+  select
+    headers_cdc.after->guid as guid,
+    headers_cdc.after->object_id as object_id,
+    headers_cdc.after->posting_date as posting_date
+  from headers_cdc
+  partition by headers_cdc.after->guid
+ ;
+
+create table tbl_header(
+  rowkey varchar key,
+  guid varchar ,
+  object_id varchar,
+  posting_date varchar
+  )
+  with(kafka_topic='headers', value_format='AVRO', key='guid');
+
+create stream items_cdc (after item)
+  with (kafka_topic='mysql.ksql_poc.item', value_format='JSON', partitions=1, replicas=1);
+
+create stream items
+  with(kafka_topic='items', value_format='JSON')
+as
+  select
+    concat(items_cdc.after->guid, items_cdc.after->item_guid) as comp_key,
+    items_cdc.after->guid as guid,
+    items_cdc.after->item_guid as item_guid,
+    items_cdc.after->item_type as item_type,
+    items_cdc.after->product_id as product_id
+  from items_cdc
+  partition by concat(items_cdc.after->guid, items_cdc.after->item_guid)
+  ;
+
+create table tbl_item (
+  rowkey varchar key,
+  comp_key varchar,
+  guid varchar ,
+  item_guid varchar,
+  item_type varchar,
+  product_id varchar
+  )
+  with (kafka_topic='items', value_format='JSON', key='comp_key');
+
+create stream split_bases_cdc (after split_base)
+  with(kafka_topic='mysql.ksql_poc.split_base', value_format='JSON', partitions=1, replicas=1);
+
+create stream split_bases
+  with (kafka_topic='split_bases', value_format='JSON')
+as
+  select
+    concat(split_bases_cdc.after->guid, split_bases_cdc.after->item_guid) as comp_key,
+    split_bases_cdc.after->guid as guid,
+    split_bases_cdc.after->item_guid as item_guid,
+    split_bases_cdc.after->sales_org as sales_org,
+    split_bases_cdc.after->partner_number as partner_number,
+    split_bases_cdc.after->currency as currency,
+    split_bases_cdc.after->alloc_date as alloc_date,
+    split_bases_cdc.after->revenue as revenue
+  from split_bases_cdc
+  partition by concat(split_bases_cdc.after->guid, split_bases_cdc.after->item_guid)
+  ;
+
+create table tbl_split_base (
+  rowkey varchar key,
+  comp_key varchar,
+  guid varchar,
+  item_guid varchar,
+  sales_org varchar,
+  partner_number varchar,
+  currency varchar,
+  alloc_date varchar,
+  revenue double
+)
+  with (kafka_topic='split_bases', value_format='JSON', key='comp_key')
+;
+
+create table tbl_items__split_base
+  with(kafka_topic='items__split_base', value_format='JSON')
+as
+  select
+    tbl_item.comp_key as comp_key,
+    tbl_item.guid as guid,
+    tbl_item.item_guid as item_guid,
+    tbl_item.item_type as item_type,
+    tbl_item.product_id as product_id,
+    tbl_split_base.sales_org as sales_org,
+    tbl_split_base.partner_number as partner_number,
+    tbl_split_base.currency as currency,
+    tbl_split_base.alloc_date as alloc_date,
+    tbl_split_base.revenue as revenue
+  from
+    tbl_item join tbl_split_base on tbl_item.comp_key = tbl_split_base.comp_key
+  ;
+
+create stream items__split_base(
+  comp_key varchar,
+  guid varchar,
+  item_type varchar,
+  product_id varchar,
+  item_guid varchar,
+  sales_org varchar,
+  partner_number varchar,
+  currency varchar,
+  alloc_date varchar,
+  revenue double
+)
+  with(kafka_topic='items__split_base', value_format='JSON')
+  ;
+
+create stream items__split_base_by_guid
+  with(kafka_topic='materialized_view', value_format='AVRO')
+as
+  select
+    items__split_base.comp_key as ID,
+    items__split_base.guid as guid,
+    items__split_base.item_type as item_type,
+    items__split_base.product_id as product_id,
+    items__split_base.item_guid as item_guid,
+    items__split_base.sales_org as sales_org,
+    items__split_base.partner_number as partner_number,
+    items__split_base.currency as currency,
+    items__split_base.alloc_date as alloc_date,
+    items__split_base.revenue as revenue,
+    tbl_header.object_id as object_id,
+    tbl_header.posting_date as posting_date
+  from items__split_base join tbl_header on items__split_base.guid=tbl_header.guid
+;
+

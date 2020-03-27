@@ -67,8 +67,7 @@ services:
       - ./debezium/conf/debezium-standalone-local.properties:/conf/cc.properties
     ports:
       - 8083:8083
-    command: /usr/bin/connect-standalone /conf/debezium-standalone-local.properties /conf/mysql-connector-local.properties /conf/jdbc-sink.properties
-#    command: /usr/bin/connect-standalone /conf/debezium-standalone-local.properties /conf/mysql-connector-local.properties
+    command: /usr/bin/connect-standalone /conf/debezium-standalone-local.properties /conf/mysql-connector-local.properties /conf/jdbc-sink.properties /conf/jdbc-sink-update-header.properties
 
   ksqldb-server:
     image: confluentinc/ksqldb-server:0.7.1

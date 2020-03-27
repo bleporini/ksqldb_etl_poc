@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+        <property name="autoIncrement" value="true"/>
+
+    <changeSet id="20200327162100-1" author="jhipster">
+        <createTable tableName="header">
+            <column name="guid" type="bigint" autoIncrement="${autoIncrement}">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="object_id" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="posting_date" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+        <createTable tableName="item">
+            <column name="guid" type="bigint" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="item_guid" type="varchar(255)" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="item_type" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="product_id" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+        <createTable tableName="split_base">
+            <column name="guid" type="bigint" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="item_guid" type="varchar(255)" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="sales_org" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="partner_number" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="currency" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="alloc_date" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="revenue" type="decimal">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+        <createTable tableName="materialized_view">
+            <column name="ID" type="varchar(255)" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="guid" type="varchar(255)" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="item_guid" type="varchar(255)" >
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="object_id" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="posting_date" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="item_type" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="product_id" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="sales_org" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="partner_number" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="currency" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="alloc_date" type="varchar(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="revenue" type="decimal">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+
+
+        <loadData
+                file="../fake-data/header.csv"
+                separator=";"
+                relativeToChangelogFile="true"
+                tableName="header">
+            <column name="guid" type="numeric"/>
+            <column name="object_id" type="string"/>
+            <column name="posting_date" type="string"/>
+        </loadData>
+        <loadData
+                file="../fake-data/item.csv"
+                separator=";"
+                relativeToChangelogFile="true"
+                tableName="item">
+            <column name="guid" type="numeric"/>
+            <column name="item_guid" type="string"/>
+            <column name="item_type" type="string"/>
+            <column name="product_id" type="string"/>
+        </loadData>
+        <loadData
+                file="../fake-data/split_base.csv"
+                separator=";"
+                relativeToChangelogFile="true"
+                tableName="split_base">
+            <column name="guid" type="numeric"/>
+            <column name="item_guid" type="string"/>
+            <column name="sales_org" type="string"/>
+            <column name="partner_number" type="string"/>
+            <column name="currency" type="string"/>
+            <column name="alloc_date" type="string"/>
+            <column name="revenue" type="numeric"/>
+        </loadData>
+
+    </changeSet>
+
+    <changeSet id="20200318162400-1-relations" author="jhipster">
+
+    </changeSet>
+    <!-- jhipster-needle-liquibase-add-changeset - JHipster will add changesets here, do not remove-->
+
+
+</databaseChangeLog>
